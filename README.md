@@ -20,7 +20,12 @@ https://www.nexusmods.com/morrowind/articles/408
 if you need it
 
 
-
+# Credits for this build
+i mostly build it on top of 2 repositories
+https://github.com/xyzz/openmw-android
+https://github.com/docent27/OMW
+i mostly cleaned and fixed version 0.47.1 of docent release without brute forcing any fancy features
+this version is closely aligned with 0.47/48 PC release, it allow you to do 100% of the game and both expansions, use console commands and exploits if you chose 
 
 # Making your own build
 
