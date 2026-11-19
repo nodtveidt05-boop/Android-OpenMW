@@ -14,7 +14,9 @@ jobs:
     - name: Install Android SDK 29
       shell: bash
       run: |
+        set +o pipefail
         yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+        set -o pipefail
         "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-29" "build-tools;29.0.2"
 
     - name: Build ARM in Ubuntu 18.04
@@ -40,7 +42,7 @@ jobs:
             cd ..
 
             ARCH=arm source buildscripts/include/version.sh
-            sed -i "s/abiFilters.*/abiFilters '''$ABI'''/" app/build.gradle
+            sed -i "s/abiFilters.*/abiFilters '$ABI'/" app/build.gradle
             export ANDROID_NDK_HOME=$(pwd)/buildscripts/toolchain/ndk/
             ./gradlew assembleNightlyDebug
 
