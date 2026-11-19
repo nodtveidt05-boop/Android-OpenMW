@@ -19,7 +19,6 @@ jobs:
           -e GITHUB_SHA="$GITHUB_SHA" \
           -e CMAKE_VERSION="$CMAKE_VERSION" \
           ubuntu:18.04 bash -euo pipefail -c '
-            sed -i "s|archive.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g; s|security.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g" /etc/apt/sources.list
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gcc-multilib python unzip pkg-config p7zip-full wget ca-certificates openjdk-8-jdk
             wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz -O /tmp/cmake.tar.gz
