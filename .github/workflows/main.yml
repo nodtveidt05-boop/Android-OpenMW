@@ -27,7 +27,7 @@ jobs:
 
     - name: Build native libraries
       run: |
-        export PATH=/home/runner/cmake-$CMAKE_VERSION-Linux-x86_64/bin/:$PATH
+        export PATH=$HOME/cmake-$CMAKE_VERSION-Linux-x86_64/bin/:$PATH
         cd buildscripts
         ./build.sh --arch ${{ matrix.arch }}
 
