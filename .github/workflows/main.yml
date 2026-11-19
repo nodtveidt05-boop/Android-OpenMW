@@ -11,6 +11,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # Reuse the ARM native toolchain and compiled dependencies between runs.
+    - name: Cache ARM native build
+      uses: actions/cache@v4
+      with:
+        path: |
+          buildscripts/downloads
+          buildscripts/toolchain
+          buildscripts/build/arm
+          buildscripts/prefix/arm
+        key: android-armv7-native-${{ runner.os }}-${{ hashFiles('buildscripts/CMakeLists.txt', 'buildscripts/build.sh', 'buildscripts/include/**', 'buildscripts/patches/**') }}
+
+    # Gradle runs inside Docker as root, so mount and cache this directory.
+    - name: Cache Gradle
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle
+        key: android-armv7-gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          android-armv7-gradle-${{ runner.os }}-
+
     - name: Install Android SDK 29
       shell: bash
       run: |
@@ -25,6 +45,7 @@ jobs:
         docker run --rm \
           -v "$GITHUB_WORKSPACE:/workspace" \
           -v "$ANDROID_HOME:/android-sdk" \
+          -v "$HOME/.gradle:/root/.gradle" \
           -w /workspace \
           -e GITHUB_SHA="$GITHUB_SHA" \
           -e CMAKE_VERSION="$CMAKE_VERSION" \
