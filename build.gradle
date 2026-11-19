@@ -15,6 +15,8 @@ buildscript {
 
 allprojects {
     repositories {
+        // JCenter mirror: keeps legacy Anko 0.10.8 artifacts resolvable.
+        maven { url 'https://maven.aliyun.com/repository/jcenter' }
         google()
         jcenter()
         maven {
