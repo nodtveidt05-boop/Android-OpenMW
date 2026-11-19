@@ -39,12 +39,24 @@ jobs:
         set -o pipefail
         "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-29" "build-tools;29.0.2"
 
+        # Keep modern cmdline-tools metadata away from legacy AGP 4.0.1/JDK 8.
+        LEGACY_SDK="$RUNNER_TEMP/android-sdk-legacy"
+        mkdir -p "$LEGACY_SDK"
+        test -f "$ANDROID_HOME/platforms/android-29/android.jar"
+        test -f "$ANDROID_HOME/build-tools/29.0.2/aapt"
+        test -d "$ANDROID_HOME/licenses"
+        cp -a "$ANDROID_HOME/platforms/android-29" "$LEGACY_SDK/platforms"
+        mkdir -p "$LEGACY_SDK/build-tools"
+        cp -a "$ANDROID_HOME/build-tools/29.0.2" "$LEGACY_SDK/build-tools/"
+        cp -a "$ANDROID_HOME/licenses" "$LEGACY_SDK/licenses"
+        echo "LEGACY_SDK=$LEGACY_SDK" >> "$GITHUB_ENV"
+
     - name: Build ARM in Ubuntu 18.04
       shell: bash
       run: |
         docker run --rm \
           -v "$GITHUB_WORKSPACE:/workspace" \
-          -v "$ANDROID_HOME:/android-sdk" \
+          -v "$LEGACY_SDK:/android-sdk" \
           -v "$HOME/.gradle:/root/.gradle" \
           -w /workspace \
           -e GITHUB_SHA="$GITHUB_SHA" \
