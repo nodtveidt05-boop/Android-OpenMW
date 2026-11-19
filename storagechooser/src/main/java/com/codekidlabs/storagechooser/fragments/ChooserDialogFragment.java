@@ -246,38 +246,42 @@ public class ChooserDialogFragment extends android.app.DialogFragment {
         File storageDir = new File("/storage");
         String internalStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath();
 
+        Storages internal = new Storages();
+        internal.setStorageTitle(mContent.getInternalStorageText());
+        internal.setStoragePath(internalStoragePath);
+        internal.setMemoryTotalSize(memoryUtil.formatSize(memoryUtil.getTotalMemorySize(internalStoragePath)));
+        internal.setMemoryAvailableSize(memoryUtil.formatSize(memoryUtil.getAvailableMemorySize(internalStoragePath)));
+        storagesList.add(internal);
+
+        // List mounted storage volumes (including removable SD cards) that this app can access.
         File[] volumeList = storageDir.listFiles();
-
-        Storages storages = new Storages();
-
-        // just add the internal storage and avoid adding emulated henceforth
-        storages.setStorageTitle(mContent.getInternalStorageText());
-
-        storages.setStoragePath(internalStoragePath);
-        storages.setMemoryTotalSize(memoryUtil.formatSize(memoryUtil.getTotalMemorySize(internalStoragePath)));
-        storages.setMemoryAvailableSize(memoryUtil.formatSize(memoryUtil.getAvailableMemorySize(internalStoragePath)));
-        storagesList.add(storages);
-
-        /* This is null on Android 11. Let's not crash here. */
         if (volumeList == null)
             return;
 
-        for (File f : volumeList) {
-            if (!f.getName().equals(MemoryUtil.SELF_DIR_NAME)
-                    && !f.getName().equals(MemoryUtil.EMULATED_DIR_KNOX)
-                    && !f.getName().equals(MemoryUtil.EMULATED_DIR_NAME)
-                    && !f.getName().equals(MemoryUtil.SDCARD0_DIR_NAME)
-                    && !f.getName().equals(MemoryUtil.CONTAINER)) {
-                Storages sharedStorage = new Storages();
-                String fPath = f.getAbsolutePath();
-                sharedStorage.setStorageTitle(f.getName());
-                sharedStorage.setMemoryTotalSize(memoryUtil.formatSize(memoryUtil.getTotalMemorySize(fPath)));
-                sharedStorage.setMemoryAvailableSize(memoryUtil.formatSize(memoryUtil.getAvailableMemorySize(fPath)));
-                sharedStorage.setStoragePath(fPath);
-                storagesList.add(sharedStorage);
+        for (File volume : volumeList) {
+            String name = volume.getName();
+            if (!volume.isDirectory() || !volume.canRead()
+                    || name.equals(MemoryUtil.SELF_DIR_NAME)
+                    || name.equals(MemoryUtil.EMULATED_DIR_KNOX)
+                    || name.equals(MemoryUtil.EMULATED_DIR_NAME)
+                    || name.equals(MemoryUtil.SDCARD0_DIR_NAME)
+                    || name.equals(MemoryUtil.CONTAINER)
+                    || volume.getAbsolutePath().equals(internalStoragePath)) {
+                continue;
+            }
+
+            try {
+                String path = volume.getAbsolutePath();
+                Storages external = new Storages();
+                external.setStorageTitle(name);
+                external.setStoragePath(path);
+                external.setMemoryTotalSize(memoryUtil.formatSize(memoryUtil.getTotalMemorySize(path)));
+                external.setMemoryAvailableSize(memoryUtil.formatSize(memoryUtil.getAvailableMemorySize(path)));
+                storagesList.add(external);
+            } catch (Exception e) {
+                Log.w(TAG, "Skipping inaccessible storage volume: " + volume.getAbsolutePath(), e);
             }
         }
-
     }
 
     // Convinience methods
