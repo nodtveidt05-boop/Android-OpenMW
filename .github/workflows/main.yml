@@ -4,61 +4,53 @@ on: [push, pull_request]
 
 jobs:
   build:
-    strategy:
-      matrix:
-        arch: [arm]
-
     runs-on: ubuntu-22.04
-    container: ubuntu:18.04
-
     env:
       CMAKE_VERSION: 3.18.4
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Build ARM in Ubuntu 18.04
       run: |
-        apt-get update
-        apt-get install -y git ca-certificates wget build-essential gcc-multilib python unzip pkg-config p7zip-full openjdk-8-jdk
-        cd "$HOME"
-        wget https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz
-        tar xvf cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE:/workspace" \
+          -w /workspace \
+          -e GITHUB_SHA="$GITHUB_SHA" \
+          -e CMAKE_VERSION="$CMAKE_VERSION" \
+          ubuntu:18.04 bash -euo pipefail -c '
+            sed -i "s|archive.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g; s|security.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g" /etc/apt/sources.list
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gcc-multilib python unzip pkg-config p7zip-full wget ca-certificates openjdk-8-jdk
+            wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz -O /tmp/cmake.tar.gz
+            tar -xzf /tmp/cmake.tar.gz -C /opt
+            export PATH=/opt/cmake-$CMAKE_VERSION-Linux-x86_64/bin:$PATH
 
-    - name: Build native libraries
-      run: |
-        export PATH=$HOME/cmake-$CMAKE_VERSION-Linux-x86_64/bin/:$PATH
-        cd buildscripts
-        ./build.sh --arch ${{ matrix.arch }}
+            cd buildscripts
+            ./build.sh --arch arm
+            cd ..
 
-    - name: Build the APK
-      run: |
-        ARCH=${{ matrix.arch }} source buildscripts/include/version.sh
-        sed -i "s/abiFilters.*/abiFilters '$ABI'/" app/build.gradle
-        export ANDROID_NDK_HOME=$(pwd)/buildscripts/toolchain/ndk/
-        ./gradlew assembleNightlyDebug
+            ARCH=arm source buildscripts/include/version.sh
+            sed -i "s/abiFilters.*/abiFilters '\''$ABI'\''/" app/build.gradle
+            export ANDROID_NDK_HOME=$(pwd)/buildscripts/toolchain/ndk/
+            ./gradlew assembleNightlyDebug
 
-    - name: Compress symbols
-      run: |
-        cd buildscripts
-        ./package-symbols.sh
-        mv symbols.7z ../symbols-$(git rev-parse --short "$GITHUB_SHA")-${{ matrix.arch }}.7z
+            cd buildscripts
+            ./package-symbols.sh
+            mv symbols.7z ../symbols-$(git rev-parse --short "$GITHUB_SHA")-arm.7z
+            cd ..
 
-    - name: Collect outputs
-      id: getfilename
-      run: |
-        mv app/build/outputs/apk/nightly/debug/omw_debug_*.apk omw-debug-$(git rev-parse --short "$GITHUB_SHA")-${{ matrix.arch }}.apk
-        echo "::set-output name=apk_file::$(ls omw-debug-*.apk | sed 's/\(.*\)\..*/\1/')"
-        echo "::set-output name=symbols_file::$(ls symbols-*.7z | sed 's/\(.*\)\..*/\1/')"
+            mv app/build/outputs/apk/nightly/debug/omw_debug_*.apk omw-debug-$(git rev-parse --short "$GITHUB_SHA")-arm.apk
+          '
 
-    - name: Upload the APK
-      uses: actions/upload-artifact@v1
+    - name: Upload ARM APK
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.getfilename.outputs.apk_file }}
-        path: ${{ steps.getfilename.outputs.apk_file }}.apk
+        name: omw-debug-arm
+        path: omw-debug-*-arm.apk
 
-    - name: Upload debug symbols
-      uses: actions/upload-artifact@v1
+    - name: Upload ARM symbols
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.getfilename.outputs.symbols_file }}
-        path: ${{ steps.getfilename.outputs.symbols_file }}.7z
+        name: symbols-arm
+        path: symbols-*-arm.7z
