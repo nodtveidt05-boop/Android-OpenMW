@@ -11,16 +11,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install Android SDK 29
+      shell: bash
+      run: |
+        yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+        "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-29" "build-tools;29.0.2"
+
     - name: Build ARM in Ubuntu 18.04
+      shell: bash
       run: |
         docker run --rm \
           -v "$GITHUB_WORKSPACE:/workspace" \
+          -v "$ANDROID_HOME:/android-sdk" \
           -w /workspace \
           -e GITHUB_SHA="$GITHUB_SHA" \
           -e CMAKE_VERSION="$CMAKE_VERSION" \
+          -e ANDROID_HOME=/android-sdk \
+          -e ANDROID_SDK_ROOT=/android-sdk \
           ubuntu:18.04 bash -euo pipefail -c '
             apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gcc-multilib python unzip pkg-config p7zip-full wget curl ca-certificates gettext-base openjdk-8-jdk
+            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gcc-multilib python unzip pkg-config p7zip-full wget curl ca-certificates gettext-base openjdk-8-jdk git patch perl
             wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz -O /tmp/cmake.tar.gz
             tar -xzf /tmp/cmake.tar.gz -C /opt
             export PATH=/opt/cmake-$CMAKE_VERSION-Linux-x86_64/bin:$PATH
@@ -30,7 +40,7 @@ jobs:
             cd ..
 
             ARCH=arm source buildscripts/include/version.sh
-            sed -i "s/abiFilters.*/abiFilters '\''$ABI'\''/" app/build.gradle
+            sed -i "s/abiFilters.*/abiFilters '''$ABI'''/" app/build.gradle
             export ANDROID_NDK_HOME=$(pwd)/buildscripts/toolchain/ndk/
             ./gradlew assembleNightlyDebug
 
