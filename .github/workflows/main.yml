@@ -20,7 +20,7 @@ jobs:
           -e CMAKE_VERSION="$CMAKE_VERSION" \
           ubuntu:18.04 bash -euo pipefail -c '
             apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gcc-multilib python unzip pkg-config p7zip-full wget ca-certificates openjdk-8-jdk
+            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gcc-multilib python unzip pkg-config p7zip-full wget curl ca-certificates openjdk-8-jdk
             wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz -O /tmp/cmake.tar.gz
             tar -xzf /tmp/cmake.tar.gz -C /opt
             export PATH=/opt/cmake-$CMAKE_VERSION-Linux-x86_64/bin:$PATH
